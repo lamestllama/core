@@ -9,7 +9,7 @@ searchforprog()
 {
     prog=$1
     searchpath=$@
-    ret=
+    ret=""
     for p in $searchpath; do
         if [ -x $p/$prog ]; then
             ret=$p
@@ -52,6 +52,10 @@ bootdaemon()
         flags="$flags --apiserver"
     fi
 
+    if [ "$1" = "zebra" ]; then
+        flags="$flags --vty_addr 127.0.0.1 --vty_port 2650 -z /var/run/frr/zserv.api"
+    fi
+
     #force FRR to use CORE generated conf file
     flags="$flags -d -f $FRR_CONF"
     $FRR_SBIN_DIR/$1 $flags
@@ -92,6 +96,20 @@ bootfrr()
     fi
 
     $FRR_BIN_DIR/vtysh -b
+    createterminalconfig "$FRR_BIN_DIR"
+
+}
+
+createterminalconfig()
+{
+    TERMINAL_CONFIG_FILE=".bashrc"
+    touch $TERMINAL_CONFIG_FILE
+    for var in "$@"
+    do
+      echo "export PATH=$var:\$PATH" >> $TERMINAL_CONFIG_FILE
+    done
+
+    source $TERMINAL_CONFIG_FILE=
 }
 
 if [ "$1" != "zebra" ]; then

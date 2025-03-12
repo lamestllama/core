@@ -48,6 +48,10 @@ bootdaemon()
         flags="$flags -6"
     fi
 
+    if [ "$1" = "zebra" ]; then
+        flags="$flags -A 127.0.0.1 -P 2600 -z /var/run/quagga/zserv.api"
+    fi
+
     $QUAGGA_SBIN_DIR/$1 $flags -d
     if [ "$?" != "0" ]; then
         echo "ERROR: Quagga's '$1' daemon failed to start!:"
@@ -82,6 +86,21 @@ bootquagga()
     fi
 
     $QUAGGA_BIN_DIR/vtysh -b
+    createterminalconfig "$QUAGGA_BIN_DIR"
+
+}
+
+createterminalconfig()
+{
+    TERMINAL_CONFIG_FILE=".bashrc"
+    touch $TERMINAL_CONFIG_FILE
+    for var in "$@"
+    do
+      echo "export PATH=$var:\$PATH" >> $TERMINAL_CONFIG_FILE
+    done
+
+    source $TERMINAL_CONFIG_FILE
+    echo "ran: source $TERMINAL_CONFIG_FILE"
 }
 
 if [ "$1" != "zebra" ]; then
