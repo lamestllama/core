@@ -1098,7 +1098,10 @@ class Session:
         self.control_net_manager.setup_nets()
         for node in self.nodes.values():
             if isinstance(node, CoreNode):
-                funcs.append((self.boot_node, (node,), {}))
+                if "DefaultRoute" in node.services:
+                    funcs.append((self.boot_node, (node,), {}))
+                else:
+                    funcs.insert(0, (self.boot_node, (node,), {}))
         results, exceptions = utils.threadpool(funcs)
         total = time.monotonic() - start
         logger.debug("boot run time: %s", total)
