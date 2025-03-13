@@ -220,6 +220,9 @@ def cmd(
     try:
         output = PIPE if wait else DEVNULL
         p = Popen(args, stdout=output, stderr=output, env=env, cwd=cwd, shell=shell)
+
+        # TODO: Check this part for why frr zebra hangs.
+        # Currently hanging occurs when p.communicate is run.
         if wait:
             p.wait()
             status = p.returncode
