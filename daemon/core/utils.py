@@ -18,7 +18,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from pathlib import Path
 from queue import Queue
-from subprocess import PIPE, STDOUT, Popen
+from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 import netaddr
@@ -220,11 +220,19 @@ def cmd(
     try:
         output = PIPE if wait else DEVNULL
         p = Popen(args, stdout=output, stderr=output, env=env, cwd=cwd, shell=shell)
+
+        # TODO: Check this part for why frr zebra hangs.
+        # Currently hanging occurs when p.communicate is run.
         if wait:
-            stdout, stderr = p.communicate()
-            stdout = stdout.decode().strip()
-            stderr = stderr.decode().strip()
+            p.wait()
             status = p.returncode
+            try:
+                stdout, stderr = p.communicate(timeout=1)
+                stdout = stdout.decode().strip()
+                stderr = stderr.decode().strip()
+            except TimeoutExpired:
+                stdout = ""
+
             if status != 0:
                 raise CoreCommandError(status, input_args, stdout, stderr)
             return stdout
