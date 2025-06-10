@@ -1315,7 +1315,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     continue
                 try:
                     client.updateConfiguration(build_id, tuple(update_tuple))
-                    logger.info("✔ Updated NEM %s %s: par%sams", nem_id, comp_type_up, params)
+                    logger.info("✔ Updated NEM %s %s: %s", nem_id, comp_type_up, params)
                 except Exception as e:
                     logger.info("⚠️ NEM %s %s: %s.", nem_id, comp_type_up, e)
                     continue
