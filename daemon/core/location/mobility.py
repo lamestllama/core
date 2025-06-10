@@ -1330,8 +1330,9 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
 
         client = CoreGrpcClient(grpc_address)
         client.connect()
-
         node= client.get_node(self.session.id, self.net.id)
+        client.close()
+
         model = node[0].emane
 
         svc = EventService(event_group)
