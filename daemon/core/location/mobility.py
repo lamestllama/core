@@ -1099,8 +1099,28 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
     and to handle these actions at runtime via an overridden updatepoints.
     """
     name: str = "extNs2ScriptedMobility"
+    event_group = ("224.1.2.8", 45703, "ctrl0.1")
+    svc = None
+    _revmap: dict[int, int] = {}
+    
 
+    def __init__(self, session: "Session", _id: int) -> None:
+        """
+        Creates a Ns2ScriptedMobility instance.
 
+        :param session: CORE session instance
+        :param _id: object id
+        """
+        super().__init__(session, _id)
+        self.svc = EventService(self.event_group)
+
+    def update_config(self, config: dict[str, str]) -> None:
+        super().update_config(config)
+        self._revmap = {v: k for k, v in self.nodemap.items()}
+
+    def revmap(self, node_id):
+        return self._revmap[node_id]
+        
     def readscriptfile(self) -> None:
         """
         Read in mobility script from a file. This adds movement waypoints and
@@ -1271,8 +1291,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
 
     # Hooks for dispatching at runtime (called from updatepoints)
     def apply_config_event(self, node_id: int, config: dict) -> None:
-        logger.info("Applying EMANE config to node %s: %s", node_id, config)
-        # TODO: connect to ControlPortClient and send configuration
+        scenario_id = self.revmap(node_id)
         nem_map = self.build_nem_map(node_id)
         # should only be one iteration because its not possible to have 
         # two nems on the same node associated with a single emane node
@@ -1290,7 +1309,8 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                         if c.upper() == comp_type_up
                     )
                 except StopIteration:
-                    logger.info("⚠️  NEM %s has no component : %s", nem_id, comp_type_up)
+                    logger.info("⚠️ Node %s NEM %s Core Id %s no component : %s", 
+                                scenario_id, nem_id, node_id, comp_type_up)
                     continue
 
                 # fetch the current configuration for that build
@@ -1306,7 +1326,8 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                 for name, value in params.items():
                     type_id = supported.get(name)
                     if type_id is None:
-                        logger.info("    ✗ NEM %s doesn’t support parameter %s, skipping.", nem_id, comp_type_up)
+                        logger.info("⚠️ Node %s NEM %s Core Id %s doesn’t support parameter %s, skipping.", 
+                                    scenario_id, nem_id, node_id, comp_type_up)
                         continue
                     # EMANE wants: (paramName, typeId, (value, …))
                     update_tuple.append((name, type_id, (value,)))
@@ -1315,27 +1336,22 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     continue
                 try:
                     client.updateConfiguration(build_id, tuple(update_tuple))
-                    logger.info("✔ Updated NEM %s %s: %s", nem_id, comp_type_up, params)
+                    logger.info("✔ Updated Configuration for Node %s NEM %s Core Id %s: %s %s", 
+                                scenario_id, nem_id, node_id, comp_type_up, params)
                 except Exception as e:
-                    logger.info("⚠️ NEM %s %s: %s.", nem_id, comp_type_up, e)
+                    logger.info("⚠️ Node %s NEM %s Core Id %s: %s.", 
+                                scenario_id, nem_id, node_id, comp_type_up, e)
                     continue
             client.stop()
         
     def apply_tdma_event(self, node_id: int, updates: dict) -> None:
 
-        logger.info("Applying TDMA event to node %s: %s", node_id, updates)
-
         grpc_address = "172.16.0.254:50051"
-        event_group = ("224.1.2.8", 45703, "ctrl0.1")
-
         client = CoreGrpcClient(grpc_address)
         client.connect()
         node= client.get_node(self.session.id, self.net.id)
         client.close()
-
         model = node[0].emane
-
-        svc = EventService(event_group)
 
         # grab the raw schedule XML for this node
         # TODO needs guarding in case this file doesnt exist
@@ -1365,4 +1381,5 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     **slot
                 )
 
-        svc.publish(nem_id, event)
+        self.svc.publish(nem_id, event)
+        logger.info("✔ Updated TDMA slots for Node %s NEM %s Core Id %s: %s", self.revmap(node_id), nem_id, node_id, updates)
