@@ -1153,6 +1153,11 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     # inner command between quotes
                     cmd = parts[3].strip().strip('"')
                     nodenum = int(cmd.split()[0].split("(")[1].split(")")[0])
+                    if nodenum not in self.nodemap:
+                        logger.info("⚠️  Node %s is not mapped for network: %s", 
+                        nodenum, self.net.name )
+                        continue
+                        
                     # movement
                     if "setdest" in cmd:
                         seg = cmd.split()
@@ -1265,10 +1270,26 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                 # dispatch EMANE TDMA schedule update
                 self.apply_tdma_event(wp.node_id, wp.value)
 
+    def setnodeposition(self, node: CoreNode, x: float, y: float, z: float) -> None:
+        """
+        Helper to move a node, notify any GUI (connected session handlers),
+        without invoking the interface poshook callback that may perform
+        range calculation.
+
+        :param node: node to set position for
+        :param x: x position
+        :param y: y position
+        :param z: z position
+        :return: nothing
+        """
+        x = x * 100.0 / 579.5
+        y = y * 100.0 / 579.5
+        node.position.set(x, y, z)
+        self.session.broadcast_node(node)
+
     def build_nem_map(self, node_id, grpc_address="127.0.0.1:50051"):   
         client = CoreGrpcClient(grpc_address)
         client.connect()
-
         nem_map = {}
         # its possible to have multiple NEMs on one node so we 
         # filter based on which emane net we are connected to
@@ -1279,7 +1300,8 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
         for interface in node[1]:
             if interface.name == "ctrl0":
                 ctrl_ip = interface.ip4
-                # After finding "ctrl0", start iterating over all interfaces again to check for NEM info
+                # After finding "ctrl0", start iterating over all 
+                # interfaces again to check for NEM info
                 for intf in node[1]:  
                     if (intf.nem_id != 0 and 
                         intf.nem_port != 0 and
@@ -1309,7 +1331,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                         if c.upper() == comp_type_up
                     )
                 except StopIteration:
-                    logger.info("⚠️ Node %s NEM %s Core Id %s no component : %s", 
+                    logger.info("⚠️  Node %s NEM %s Core Id %s no component : %s", 
                                 scenario_id, nem_id, node_id, comp_type_up)
                     continue
 
@@ -1326,7 +1348,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                 for name, value in params.items():
                     type_id = supported.get(name)
                     if type_id is None:
-                        logger.info("⚠️ Node %s NEM %s Core Id %s doesn’t support parameter %s, skipping.", 
+                        logger.info("⚠️  Node %s NEM %s Core Id %s doesn’t support parameter %s, skipping.", 
                                     scenario_id, nem_id, node_id, comp_type_up)
                         continue
                     # EMANE wants: (paramName, typeId, (value, …))
@@ -1339,7 +1361,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     logger.info("✔ Updated Configuration for Node %s NEM %s Core Id %s: %s %s", 
                                 scenario_id, nem_id, node_id, comp_type_up, params)
                 except Exception as e:
-                    logger.info("⚠️ Node %s NEM %s Core Id %s: %s.", 
+                    logger.info("⚠️  Node %s NEM %s Core Id %s: %s.", 
                                 scenario_id, nem_id, node_id, comp_type_up, e)
                     continue
             client.stop()
