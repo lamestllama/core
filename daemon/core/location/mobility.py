@@ -1282,8 +1282,6 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
         :param z: z position
         :return: nothing
         """
-        x = x * 100.0 / 579.5
-        y = y * 100.0 / 579.5
         node.position.set(x, y, z)
         self.session.broadcast_node(node)
 
