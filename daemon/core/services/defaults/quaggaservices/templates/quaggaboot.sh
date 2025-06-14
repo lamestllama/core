@@ -69,7 +69,7 @@ bootquagga()
     if [ "$?" = "0" ]; then
         chown quagga $QUAGGA_STATE_DIR
     fi
-
+    sleep 2
     bootdaemon "zebra"
     for r in rip ripng ospf6 ospf bgp babel; do
         if grep -q "^router \\<$${}{r}\\>" $QUAGGA_CONF; then
