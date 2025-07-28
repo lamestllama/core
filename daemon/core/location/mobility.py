@@ -7,6 +7,9 @@ import logging
 import math
 import threading
 import time
+import mgrs
+from pyproj import Transformer
+from core.location.geo import GeoLocation
 from functools import total_ordering
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
@@ -1092,6 +1095,32 @@ class ExtWayPoint(WayPoint):
         self.action = action
         self.value = value
 
+def latlon_to_canvas_xy_utm(lat, lon, geolocation: GeoLocation) -> tuple[float, float]:
+    """
+    Project lat/lon using true UTM zone and convert to canvas using GeoLocation’s reference.
+    """
+    # Use correct UTM zone for this point
+    utm_zone = int((lon + 180) / 6) + 1
+    epsg = 32700 + utm_zone if lat < 0 else 32600 + utm_zone
+
+    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
+
+    # Project into true metres
+    easting, northing = transformer.transform(lon, lat)
+
+    # Also project the geolocation origin to the same UTM CRS
+    ref_lat, ref_lon, _ = geolocation.refgeo
+    ref_e, ref_n = transformer.transform(ref_lon, ref_lat)
+
+    # Relative to origin (in metres), then scaled to canvas
+    dx = easting - ref_e
+    dy = northing - ref_n
+
+    x = geolocation.meters2pixels(dx) + geolocation.refxyz[0]
+    y = -geolocation.meters2pixels(dy) + geolocation.refxyz[1]
+
+    return x, y
+
 
 class Ns2ScriptedMobility(OldNs2ScriptedMobility):
     """
@@ -1138,8 +1167,9 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
             return
         logger.info("reading ns-2 script file: %s", file_path)
         ln = 0
-        ix = iy = iz = None
-        inodenum = None
+
+        mgrs_converter = mgrs.MGRS()
+        
         for line in f:
             ln += 1
             if not line.startswith("$n"):
@@ -1161,14 +1191,28 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     # movement
                     if "setdest" in cmd:
                         seg = cmd.split()
-                        #nodenum = int(seg[0].split("(")[1].split(")")[0])
-                        x = float(seg[2]); y = float(seg[3]); z = None
-                        speed = float(seg[4]) if len(seg) > 4 else 0.0
+                        # #nodenum = int(seg[0].split("(")[1].split(")")[0])
+                        # try: 
+                        #     x = float(seg[2])
+                        #     y = float(seg[3]) 
+                        #     z = None
+                        #     speed = float(seg[4]) if len(seg) > 4 else 0.0
+                        # except ValueError:
+                        # Treat as MGRS
+                        try:
+                            lat, lon = mgrs_converter.toLatLon(seg[2])
+                            x, y = latlon_to_canvas_xy_utm(lat, lon, self.session.location)
+                            z = None
+                            speed = float(seg[3]) if len(seg) > 3 else 0.0
+                            speed = self.session.location.meters2pixels(speed / 3.6)
+                        except Exception as e:
+                            logger.error(f"⚠️ Invalid MGRS coordinate '{seg[2]}': {e}")
+                            continue
                         self.addwaypoint(
                             line_time,
                             self.map(nodenum),
                             x, y, z, speed
-                        )
+                        )                        
                     # config event
                     elif "setconfig" in cmd:
                         # seg = cmd.split()
@@ -1200,17 +1244,23 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                         )
                         heapq.heappush(self.queue, wp)
                 elif line.startswith("$node_"):
-                    # initial positions
-                    parts = line.split()
-                    nodenum = int(parts[0].split("(")[1].split(")")[0])
-                    if parts[2] == "X_":
-                        ix = float(parts[3])
-                    elif parts[2] == "Y_":
-                        iy = float(parts[3])
-                    elif parts[2] == "Z_":
-                        iz = float(parts[3])
-                        self.addinitial(self.map(nodenum), ix, iy, iz)
-                        ix = iy = iz = None
+                    cmd = line
+                    nodenum = int(cmd.split()[0].split("(")[1].split(")")[0])
+                    if nodenum not in self.nodemap:
+                        logger.info("⚠️  Node %s is not mapped for network: %s", 
+                        nodenum, self.net.name )
+                        continue
+                    seg = cmd.split()
+                    try:
+                        lat, lon = mgrs_converter.toLatLon(seg[2])
+                        x, y = latlon_to_canvas_xy_utm(lat, lon, self.session.location)
+                        z = None
+                    except Exception as e:
+                        logger.error(f"⚠️ Invalid MGRS coordinate '{seg[2]}': {e}")
+                        continue
+                    
+                    self.addinitial(self.map(nodenum), x, y, z)
+
                 else:
                     raise ValueError
             except Exception:
@@ -1218,9 +1268,6 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
                     "skipping line %d of file %s '%s'", ln, self.file, line
                 )
                 continue
-        # final initial if needed
-        if ix is not None and iy is not None:
-            self.addinitial(self.map(inodenum), ix, iy, iz)
 
     def addinitial(self, nodenum: int, x: float, y: float, z: float) -> None:
         """
