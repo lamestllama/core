@@ -540,42 +540,18 @@ class WayPointMobility(WirelessModel):
 
     def runround(self) -> None:
         """
-        Advance script time and move nodes.
-
-        :return: nothing
+        Advance script time and move nodes continuously, even across long gaps.
         """
         if self.state != self.STATE_RUNNING:
             return
+
         t = self.lasttime
         self.lasttime = time.monotonic()
         now = self.lasttime - self.timezero
         dt = self.lasttime - t
 
-        # keep current waypoints up-to-date
+        # Release any waypoints that are due
         self.updatepoints(now)
-
-        if not len(self.points):
-            if len(self.queue):
-                # more future waypoints, allow time for self.lasttime update
-                nexttime = self.queue[0].time - now
-                if nexttime > (0.001 * self.refresh_ms):
-                    nexttime -= 0.001 * self.refresh_ms
-                self.session.event_loop.add_event(nexttime, self.runround)
-                return
-            else:
-                # no more waypoints or queued items, loop?
-                if not self.empty_queue_stop:
-                    # keep running every refresh_ms, even with empty queue
-                    self.session.event_loop.add_event(
-                        0.001 * self.refresh_ms, self.runround
-                    )
-                    return
-                if not self.loopwaypoints():
-                    return self.stop(move_initial=False)
-                if not len(self.queue):
-                    # prevent busy loop
-                    return
-                return self.run()
 
         moved_ifaces = []
         for iface in self.net.get_ifaces():
@@ -583,11 +559,19 @@ class WayPointMobility(WirelessModel):
             if self.movenode(node, dt):
                 moved_ifaces.append(iface)
 
-        # calculate all ranges after moving nodes; this saves calculations
+        # Update wireless ranges after movement
         self.net.wireless_model.update(moved_ifaces)
 
-        # TODO: check session state
-        self.session.event_loop.add_event(0.001 * self.refresh_ms, self.runround)
+        # Always tick at refresh_ms to avoid freezing
+        if len(self.queue) or len(self.points) or not self.empty_queue_stop:
+            self.session.event_loop.add_event(0.001 * self.refresh_ms, self.runround)
+        else:
+            # Optionally loop or stop when completely finished
+            if not self.loopwaypoints():
+                return self.stop(move_initial=False)
+            if not len(self.queue):
+                return  # Prevent busy loop
+            return self.run()
 
     def run(self) -> None:
         """
@@ -1141,6 +1125,7 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
         :param _id: object id
         """
         super().__init__(session, _id)
+        self.queue: list[ExtWayPoint] = []
         self.svc = EventService(self.event_group)
 
     def update_config(self, config: dict[str, str]) -> None:
