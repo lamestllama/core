@@ -219,6 +219,8 @@ def create_transport_xml(iface: CoreInterface, config: dict[str, str]) -> None:
         add_param(transport_element, "devicepath", device_path)
         if flowcontrol:
             add_param(transport_element, "flowcontrolenable", "on")
+        if iface.has_ip4():
+            add_param(transport_element, "address", str(iface.get_first_ip4().ip))
     doc_name = "transport"
     file_name = transport_file_name(iface)
     create_node_file(iface.node, transport_element, doc_name, file_name)
