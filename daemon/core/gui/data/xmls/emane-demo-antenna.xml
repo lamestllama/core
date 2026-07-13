@@ -80,7 +80,6 @@
         <configuration name="flowcontroltokens" value="10"/>
         <configuration name="jitter" value="0.000000"/>
         <configuration name="neighbormetricdeletetime" value="60.000000"/>
-        <configuration name="pcrcurveuri" value="/usr/share/emane/xml/models/mac/rfpipe/rfpipepcr.xml"/>
         <configuration name="radiometricenable" value="0"/>
         <configuration name="radiometricreportinterval" value="1.000000"/>
       </mac>
@@ -154,7 +153,6 @@
         <configuration name="flowcontroltokens" value="10"/>
         <configuration name="jitter" value="0.000000"/>
         <configuration name="neighbormetricdeletetime" value="60.000000"/>
-        <configuration name="pcrcurveuri" value="/usr/share/emane/xml/models/mac/rfpipe/rfpipepcr.xml"/>
         <configuration name="radiometricenable" value="0"/>
         <configuration name="radiometricreportinterval" value="1.000000"/>
       </mac>
@@ -228,7 +226,6 @@
         <configuration name="flowcontroltokens" value="10"/>
         <configuration name="jitter" value="0.000000"/>
         <configuration name="neighbormetricdeletetime" value="60.000000"/>
-        <configuration name="pcrcurveuri" value="/usr/share/emane/xml/models/mac/rfpipe/rfpipepcr.xml"/>
         <configuration name="radiometricenable" value="0"/>
         <configuration name="radiometricreportinterval" value="1.000000"/>
       </mac>
@@ -302,7 +299,6 @@
         <configuration name="flowcontroltokens" value="10"/>
         <configuration name="jitter" value="0.000000"/>
         <configuration name="neighbormetricdeletetime" value="60.000000"/>
-        <configuration name="pcrcurveuri" value="/usr/share/emane/xml/models/mac/rfpipe/rfpipepcr.xml"/>
         <configuration name="radiometricenable" value="0"/>
         <configuration name="radiometricreportinterval" value="1.000000"/>
       </mac>
@@ -376,7 +372,6 @@
         <configuration name="flowcontroltokens" value="10"/>
         <configuration name="jitter" value="0.000000"/>
         <configuration name="neighbormetricdeletetime" value="60.000000"/>
-        <configuration name="pcrcurveuri" value="/usr/share/emane/xml/models/mac/rfpipe/rfpipepcr.xml"/>
         <configuration name="radiometricenable" value="0"/>
         <configuration name="radiometricreportinterval" value="1.000000"/>
       </mac>
