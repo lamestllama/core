@@ -32,6 +32,7 @@ class SessionConfig:
         ConfigInt(id="link_timeout", default="4", label="EMANE Link Timeout (sec)"),
         ConfigInt(id="mtu", default="0", label="MTU for All Devices"),
         ConfigBool(id="checksums", default="0", label="Enable Eth Checksums?"),
+        ConfigString(id="emane_prefix", default="/usr", label="EMANE Prefix"),
     ]
 
     def __init__(self, config: dict[str, str] = None) -> None:
