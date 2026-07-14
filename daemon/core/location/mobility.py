@@ -1126,6 +1126,10 @@ class Ns2ScriptedMobility(OldNs2ScriptedMobility):
         """
         super().__init__(session, _id)
         self.queue: list[ExtWayPoint] = []
+        # derive the control net device from the session rather than
+        # hardcoding ctrl0.1; the bridge is named ctrl0.<short_session_id>
+        group, port, _ = self.event_group
+        self.event_group = (group, port, f"ctrl0.{session.short_session_id()}")
         self.svc = EventService(self.event_group)
 
     def update_config(self, config: dict[str, str]) -> None:
