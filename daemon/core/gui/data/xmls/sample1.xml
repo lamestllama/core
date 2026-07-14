@@ -182,12 +182,12 @@
       <configuration name="error" value="0"/>
       <configuration name="promiscuous" value="0"/>
     </mobility_configuration>
-    <mobility_configuration node="10" model="ns2script">
+    <mobility_configuration node="10" model="extNs2ScriptedMobility">
       <configuration name="file" value="sample1.scen"/>
       <configuration name="refresh_ms" value="50"/>
       <configuration name="loop" value="1"/>
       <configuration name="autostart" value="5"/>
-      <configuration name="map" value=""/>
+      <configuration name="map" value="6:6,7:7,8:8,9:9"/>
       <configuration name="script_start" value=""/>
       <configuration name="script_pause" value=""/>
       <configuration name="script_stop" value=""/>
@@ -225,7 +225,7 @@
   </service_configurations>
   <session_origin lat="47.579166412353516" lon="-122.13232421875" alt="2.0" scale="150.0"/>
   <session_options>
-    <configuration name="controlnet" value=""/>
+    <configuration name="controlnet" value="172.16.0.0/24"/>
     <configuration name="controlnet0" value=""/>
     <configuration name="controlnet1" value=""/>
     <configuration name="controlnet2" value=""/>

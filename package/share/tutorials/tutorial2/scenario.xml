@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <scenario>
   <networks>
-    <network id="1" name="wlan1" icon="" canvas="0" model="basic_range" mobility="ns2script" type="WIRELESS_LAN">
+    <network id="1" name="wlan1" icon="" canvas="0" model="basic_range" mobility="extNs2ScriptedMobility" type="WIRELESS_LAN">
       <position x="200.0" y="200.0" lat="47.57735226369077" lon="-122.1296216435031" alt="2.0"/>
     </network>
   </networks>
@@ -44,7 +44,7 @@
   </links>
   <session_origin lat="47.57917022705078" lon="-122.13231658935547" alt="2.0" scale="150.0"/>
   <session_options>
-    <configuration name="controlnet" value=""/>
+    <configuration name="controlnet" value="172.16.0.0/24"/>
     <configuration name="controlnet0" value=""/>
     <configuration name="controlnet1" value=""/>
     <configuration name="controlnet2" value=""/>

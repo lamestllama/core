@@ -3,26 +3,18 @@
 # nominal range: 300.00 link bw: 54000000.00
 # pause: 30.00, min speed 1.50 max speed: 4.50
 
-$node_(6) set X_ 780.0
-$node_(6) set Y_ 228.0
-$node_(6) set Z_ 0.00
-$node_(7) set X_ 816.0
-$node_(7) set Y_ 348.0
-$node_(7) set Z_ 0.00
-$node_(8) set X_ 672.0
-$node_(8) set Y_ 420.0
-$node_(8) set Z_ 0.00
-$node_(9) set X_ 672.0
-$node_(9) set Y_ 96.0
-$node_(9) set Z_ 0.00
-$ns_ at 1.00 "$node_(6) setdest 500.0 178.0 25.0"
-$ns_ at 2.00 "$node_(7) setdest 400.0 288.0 15.0"
-$ns_ at 1.00 "$node_(8) setdest 590.0 520.0 17.0"
-$ns_ at 3.00 "$node_(9) setdest 720.0 300.0 20.0"
-$ns_ at 8.00 "$node_(7) setdest 600.0 350.0 10.0"
-$ns_ at 9.00 "$node_(8) setdest 730.0 300.0 15.0"
-$ns_ at 10.00 "$node_(6) setdest 600.0 108.0 10.0"
-$ns_ at 16.00 "$node_(9) setdest 672.0 96.0 20.0"
-$ns_ at 17.00 "$node_(7) setdest 816.0 348.0 20.0"
-$ns_ at 18.00 "$node_(6) setdest 780.0 228.0 25.0"
-$ns_ at 22.00 "$node_(8) setdest 672.0 420.0 20.0"
+$node_(6) set 10TET6641969550
+$node_(7) set 10TET6647369370
+$node_(8) set 10TET6625769262
+$node_(9) set 10TET6625769748
+$ns_ at 1.00 "$node_(6) setdest 10TET6599969625 25.0"
+$ns_ at 2.00 "$node_(7) setdest 10TET6584969460 15.0"
+$ns_ at 1.00 "$node_(8) setdest 10TET6613469112 17.0"
+$ns_ at 3.00 "$node_(9) setdest 10TET6632969442 20.0"
+$ns_ at 8.00 "$node_(7) setdest 10TET6614969367 10.0"
+$ns_ at 9.00 "$node_(8) setdest 10TET6634469442 15.0"
+$ns_ at 10.00 "$node_(6) setdest 10TET6614969730 10.0"
+$ns_ at 16.00 "$node_(9) setdest 10TET6625769748 20.0"
+$ns_ at 17.00 "$node_(7) setdest 10TET6647369370 20.0"
+$ns_ at 18.00 "$node_(6) setdest 10TET6641969550 25.0"
+$ns_ at 22.00 "$node_(8) setdest 10TET6625769262 20.0"

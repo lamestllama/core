@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <scenario>
   <networks>
-    <network id="3" name="wlan3" icon="" canvas="1" model="basic_range" mobility="ns2script" type="WIRELESS_LAN">
+    <network id="3" name="wlan3" icon="" canvas="1" model="basic_range" mobility="extNs2ScriptedMobility" type="WIRELESS_LAN">
       <position x="294.0" y="149.0" lat="47.57781203554751" lon="-122.12836264834701" alt="2.0"/>
     </network>
   </networks>
@@ -51,12 +51,12 @@
       <configuration name="error" value="0.0"/>
       <configuration name="promiscuous" value="0"/>
     </mobility_configuration>
-    <mobility_configuration node="3" model="ns2script">
+    <mobility_configuration node="3" model="extNs2ScriptedMobility">
       <configuration name="file" value="/opt/core/share/tutorials/tutorial3/movements1.txt"/>
       <configuration name="refresh_ms" value="50"/>
       <configuration name="loop" value="1"/>
-      <configuration name="autostart" value=""/>
-      <configuration name="map" value=""/>
+      <configuration name="autostart" value="5"/>
+      <configuration name="map" value="1:1,2:2,4:4"/>
       <configuration name="script_start" value=""/>
       <configuration name="script_pause" value=""/>
       <configuration name="script_stop" value=""/>
@@ -64,7 +64,7 @@
   </mobility_configurations>
   <session_origin lat="47.579166412353516" lon="-122.13232421875" alt="2.0" scale="150.0"/>
   <session_options>
-    <configuration name="controlnet" value=""/>
+    <configuration name="controlnet" value="172.16.0.0/24"/>
     <configuration name="controlnet0" value=""/>
     <configuration name="controlnet1" value=""/>
     <configuration name="controlnet2" value=""/>
