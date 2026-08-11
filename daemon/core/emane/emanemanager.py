@@ -536,7 +536,15 @@ class EmaneManager:
     def install_iface(self, iface: TunTap, config: dict[str, str]) -> None:
         external = config.get("external", "0")
         if external == "0":
-            iface.set_ips()
+            # VirtualTransport configured the primary IPv4 before postStart so
+            # it could report that identity downstream. Do not add that exact
+            # address twice; secondary IPv4 and IPv6 addresses remain CORE's
+            # responsibility.
+            skip = set()
+            ip4 = iface.get_ip4()
+            if iface.is_virtual() and ip4:
+                skip.add(str(ip4))
+            iface.set_ips(skip)
         # at this point we register location handlers for generating
         # EMANE location events
         if self.genlocationevents():

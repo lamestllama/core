@@ -129,14 +129,19 @@ class TunTap(CoreInterface):
             else:
                 raise RuntimeError("node device failed to exist")
 
-    def set_ips(self) -> None:
+    def set_ips(self, skip: set[str] | None = None) -> None:
         """
         Set interface ip addresses.
 
+        :param skip: exact address/prefix strings already owned by the
+            VirtualTransport
         :return: nothing
         """
         self.waitfordevicenode()
+        skip = skip or set()
         for ip in self.ips():
+            if str(ip) in skip:
+                continue
             self.node.node_net_client.create_address(self.name, str(ip))
 
 

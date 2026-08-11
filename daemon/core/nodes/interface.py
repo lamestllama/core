@@ -130,12 +130,6 @@ class CoreInterface:
         self.has_netem: bool = False
         self.options: LinkOptions = LinkOptions()
 
-    def get_first_ip4(self) -> netaddr.IPNetwork:
-        return self.ip4s[0]
-
-    def has_ip4(self) -> bool:
-        return bool(self.ip4s)
-
     def host_cmd(
         self,
         args: str,

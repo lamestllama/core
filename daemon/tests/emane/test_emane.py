@@ -3,6 +3,7 @@ Unit tests for testing CORE EMANE networks.
 """
 from pathlib import Path
 from tempfile import TemporaryFile
+from types import SimpleNamespace
 from typing import Type
 from xml.etree import ElementTree
 
@@ -15,11 +16,13 @@ from core.emane.models.commeffect import EmaneCommEffectModel
 from core.emane.models.ieee80211abg import EmaneIeee80211abgModel
 from core.emane.models.rfpipe import EmaneRfPipeModel
 from core.emane.models.tdma import EmaneTdmaModel
-from core.emane.nodes import EmaneNet
+from core.emane.nodes import EmaneNet, TunTap
 from core.emulator.data import IpPrefixes
 from core.emulator.session import Session
 from core.errors import CoreCommandError, CoreError
 from core.nodes.base import CoreNode, Position
+from core.nodes.interface import CoreInterface
+from core.xml import emanexml
 
 _EMANE_MODELS = [
     EmaneIeee80211abgModel,
@@ -45,6 +48,48 @@ def ping(
 
 
 class TestEmane:
+    def test_virtual_transport_configures_interface_address(self, monkeypatch):
+        node = object.__new__(CoreNode)
+        monkeypatch.setattr(node, "path_exists", lambda _path: False)
+        iface = CoreInterface(0, "eth0", "tap0", False, node=node)
+        iface.add_ip("10.0.0.1/32")
+
+        created = {}
+
+        def capture_node_file(_node, xml_element, _doc_name, _file_name):
+            created["xml_element"] = xml_element
+
+        monkeypatch.setattr(emanexml, "create_node_file", capture_node_file)
+        emanexml.create_transport_xml(iface, {})
+
+        params = {
+            param.get("name"): param.get("value")
+            for param in created["xml_element"].findall("param")
+        }
+        assert params["devicepath"] == "/dev/net/tun"
+        assert params["address"] == "10.0.0.1"
+        assert params["mask"] == "255.255.255.255"
+
+    def test_virtual_transport_owned_ipv4_is_not_added_twice(self):
+        created = []
+
+        class NetClient:
+            @staticmethod
+            def device_show(_device):
+                return None
+
+            @staticmethod
+            def create_address(device, address):
+                created.append((device, address))
+
+        node = SimpleNamespace(node_net_client=NetClient())
+        iface = TunTap(0, "eth0", "tap0", False, node=node)
+        iface.add_ip("10.0.0.1/32")
+        iface.add_ip("2001:db8::1/128")
+        iface.set_ips({str(iface.get_ip4())})
+
+        assert created == [("eth0", "2001:db8::1/128")]
+
     def test_two_emane_interfaces(self, session: Session):
         """
         Test nodes running multiple emane interfaces.

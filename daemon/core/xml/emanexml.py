@@ -221,8 +221,13 @@ def create_transport_xml(iface: CoreInterface, config: dict[str, str]) -> None:
         add_param(transport_element, "devicepath", device_path)
         if flowcontrol:
             add_param(transport_element, "flowcontrolenable", "on")
-        if iface.has_ip4():
-            add_param(transport_element, "address", str(iface.get_first_ip4().ip))
+        ip4 = iface.get_ip4()
+        if ip4:
+            # VirtualTransport owns the TAP while EMANE starts. Supplying the
+            # interface identity here lets it configure the address atomically
+            # and pass that exact per-NEM address to MAC layers at postStart.
+            add_param(transport_element, "address", str(ip4.ip))
+            add_param(transport_element, "mask", str(ip4.netmask))
     doc_name = "transport"
     file_name = transport_file_name(iface)
     create_node_file(iface.node, transport_element, doc_name, file_name)
