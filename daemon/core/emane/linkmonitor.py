@@ -209,6 +209,10 @@ class EmaneLinkMonitor:
             client = EmaneClient(address, port)
             if client.nems:
                 self.clients.append(client)
+            else:
+                # a discarded client still holds a socket, a pipe and a reader
+                # thread, and stop() is never reached for it any other way
+                client.stop()
 
     def get_addresses(self) -> list[tuple[str, int]]:
         addresses = []
