@@ -85,7 +85,13 @@ class EmaneClient:
             self.address, port
         )
         self.nems: dict[int, LossTable] = {}
-        self.setup()
+        try:
+            self.setup()
+        except Exception:
+            # the transport is live by this point, and a caller that never
+            # receives the object cannot stop it
+            self.client.stop()
+            raise
 
     def setup(self) -> None:
         manifest = self.client.getManifest()
@@ -206,7 +212,11 @@ class EmaneLinkMonitor:
     def initialize(self) -> None:
         addresses = self.get_addresses()
         for address, port in addresses:
-            client = EmaneClient(address, port)
+            try:
+                client = EmaneClient(address, port)
+            except shell.ControlPortException:
+                logger.exception("error connecting to emane %s:%s", address, port)
+                continue
             if client.nems:
                 self.clients.append(client)
             else:
