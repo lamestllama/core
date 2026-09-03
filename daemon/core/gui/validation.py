@@ -67,7 +67,7 @@ class FloatEntry(ValidationEntry):
     empty = "0.0"
 
     def is_valid(self, s: str) -> bool:
-        if not s:
+        if not s or s in {"-", "+"}:
             return True
         try:
             float(s)

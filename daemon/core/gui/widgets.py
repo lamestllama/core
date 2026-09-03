@@ -162,7 +162,7 @@ class ConfigFrame(ttk.Notebook):
                 elif option.type == ConfigOptionType.FLOAT:
                     value.set(option.value)
                     state = tk.NORMAL if self.enabled else tk.DISABLED
-                    entry = validation.PositiveFloatEntry(
+                    entry = validation.FloatEntry(
                         tab.frame, textvariable=value, state=state
                     )
                     entry.grid(row=index, column=1, sticky=tk.EW)
@@ -181,6 +181,14 @@ class ConfigFrame(ttk.Notebook):
                 else:
                     option.value = "0"
             else:
+                if option.type == ConfigOptionType.FLOAT:
+                    try:
+                        float(config_value)
+                    except ValueError:
+                        raise ValueError(
+                            f"{option.label} value '{config_value}' "
+                            "is not a valid float"
+                        )
                 if option.regex:
                     if not re.match(option.regex, config_value):
                         raise ValueError(
