@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import grpc
+import mgrs
 from PIL.ImageTk import PhotoImage
 
 from core.api.grpc.wrappers import Interface, Node, NodeType, ServiceAction
@@ -22,6 +23,7 @@ from core.gui.graph import tags
 from core.gui.graph.edges import CanvasEdge, CanvasWirelessEdge
 from core.gui.graph.tooltip import CanvasTooltip
 from core.gui.images import ImageEnum
+from core.location.geo import GeoLocation
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +219,48 @@ class CanvasNode:
     def show_info(self, _event: tk.Event) -> None:
         self.app.display_info(NodeInfoFrame, app=self.app, canvas_node=self)
 
+    def geo_position(self) -> tuple[float, float, float] | None:
+        """
+        Latitude, longitude and altitude of this node, derived from its canvas
+        x/y and the session reference point with the same conversion the
+        daemon uses when it writes lat/lon into scenario XML.
+
+        :return: (lat, lon, alt), or None when no session location is set
+        """
+        session = self.app.core.session
+        location = getattr(session, "location", None) if session else None
+        if location is None:
+            return None
+        geo = GeoLocation()
+        geo.setrefgeo(location.lat, location.lon, location.alt)
+        geo.refscale = location.scale
+        geo.refxyz = (location.x, location.y, location.z)
+        pos = self.core_node.position
+        # the GUI Position wrapper carries no z; None means reference altitude
+        return geo.getgeo(pos.x, pos.y, getattr(pos, "z", None))
+
+    def _copy_to_clipboard(self, text: str) -> None:
+        self.canvas.clipboard_clear()
+        self.canvas.clipboard_append(text)
+        # let Tk hand the selection to the display server so paste works
+        self.canvas.update()
+
+    def copy_latlon(self) -> None:
+        geo = self.geo_position()
+        if geo is None:
+            self.app.show_error("Copy Lat/Lon", "No session location is set.")
+            return
+        lat, lon, _alt = geo
+        self._copy_to_clipboard(f"{lat:.6f}, {lon:.6f}")
+
+    def copy_mgrs(self) -> None:
+        geo = self.geo_position()
+        if geo is None:
+            self.app.show_error("Copy MGRS", "No session location is set.")
+            return
+        lat, lon, _alt = geo
+        self._copy_to_clipboard(mgrs.MGRS().toMGRS(lat, lon, MGRSPrecision=5))
+
     def show_context(self, event: tk.Event) -> None:
         # clear existing menu
         self.context.delete(0, tk.END)
@@ -329,6 +373,9 @@ class CanvasNode:
             edit_menu.add_command(label="Delete", command=self.canvas_delete)
             edit_menu.add_command(label="Hide", command=self.click_hide)
             self.context.add_cascade(label="Edit", menu=edit_menu)
+        self.context.add_separator()
+        self.context.add_command(label="Copy Lat/Lon", command=self.copy_latlon)
+        self.context.add_command(label="Copy MGRS", command=self.copy_mgrs)
         self.context.tk_popup(event.x_root, event.y_root)
 
     def click_cut(self) -> None:
