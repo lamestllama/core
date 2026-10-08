@@ -14,11 +14,12 @@ import shlex
 import shutil
 import sys
 import threading
+import time
 from collections import OrderedDict
 from collections.abc import Iterable
 from pathlib import Path
 from queue import Queue
-from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
+from subprocess import PIPE, STDOUT, Popen
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 import netaddr
@@ -35,6 +36,12 @@ T = TypeVar("T")
 
 DEVNULL = open(os.devnull, "wb")
 IFACE_CONFIG_FACTOR: int = 1000
+
+
+def _read_pipe(pipe, chunks: list[bytes]) -> None:
+    """Append everything read from pipe to chunks until it closes."""
+    for chunk in iter(lambda: pipe.read1(65536), b""):
+        chunks.append(chunk)
 
 
 def execute_script(coreemu: "CoreEmu", file_path: Path, args: str) -> None:
@@ -221,14 +228,23 @@ def cmd(
         output = PIPE if wait else DEVNULL
         p = Popen(args, stdout=output, stderr=output, env=env, cwd=cwd, shell=shell)
         if wait:
-            p.wait()
-            status = p.returncode
-            try:
-                stdout, stderr = p.communicate(timeout=1)
-                stdout = stdout.decode().strip()
-                stderr = stderr.decode().strip()
-            except TimeoutExpired:
-                stdout = ""
+            # Read while the command runs, so a large output cannot fill the pipe
+            # and block it. A daemon the command starts (zebra -d) may keep the
+            # pipe open after the command exits, so stop reading shortly after
+            # the exit instead of waiting for an end of output that never comes.
+            stdout_chunks, stderr_chunks = [], []
+            readers = [
+                threading.Thread(target=_read_pipe, args=(p.stdout, stdout_chunks), daemon=True),
+                threading.Thread(target=_read_pipe, args=(p.stderr, stderr_chunks), daemon=True),
+            ]
+            for reader in readers:
+                reader.start()
+            status = p.wait()
+            deadline = time.monotonic() + 1
+            for reader in readers:
+                reader.join(timeout=max(0.0, deadline - time.monotonic()))
+            stdout = b"".join(stdout_chunks).decode().strip()
+            stderr = b"".join(stderr_chunks).decode().strip()
 
             if status != 0:
                 raise CoreCommandError(status, input_args, stdout, stderr)
